@@ -22,7 +22,7 @@ module TimesTable
   ALL_TABLES = (1..10).to_a.freeze
   MULTIPLIERS = (1..10).to_a.freeze
   DEFAULT_QUESTIONS = 20
-  DEFAULT_THINK_SECONDS = 8        # slower answers are right, but not automatic yet
+  DEFAULT_THINK_SECONDS = 8        # slower answers are right, but not automatic yet (nil: no timer)
   DEFAULT_CHALLENGE_SECONDS = 60
   MASTERED_BOX = 3                 # Leitner box at which a fact counts as mastered
   BOX_INTERVALS = [1, 2, 4, 8].freeze # sessions before a fact is due again, by box
@@ -437,7 +437,7 @@ module TimesTable
 
     def draw(question, buffer, elapsed, think, challenge_left)
       slot = @ui.paint(buffer.empty? ? "?" : buffer, :bold, :cyan)
-      text = "#{timer(think - elapsed, think)}  #{question.fill(slot)}"
+      text = think ? "#{timer(think - elapsed, think)}  #{question.fill(slot)}" : question.fill(slot)
       text += "   #{@ui.paint("⏰ #{challenge_left.call.ceil} s", :magenta)}" if challenge_left
       @ui.frame(text)
     end
@@ -798,7 +798,7 @@ module TimesTable
       case item.attempt
       when :first, :flip
         @first_try_right += 1
-        elapsed > @think ? slow_answer(question, answered) : fast_answer(question, answered)
+        @think && elapsed > @think ? slow_answer(question, answered) : fast_answer(question, answered)
       when :retry
         @ui.feedback(answered, @ui.t(:now_right), :right)
         schedule(item.with(attempt: :confirm, tries: 0), CONFIRM_GAP)
@@ -985,7 +985,7 @@ module TimesTable
     USAGE = "Usage: ruby times_table.rb [options]   (see --help)"
 
     def self.parse(argv)
-      options = { questions: DEFAULT_QUESTIONS, mode: "multiply", lang: "en", think: DEFAULT_THINK_SECONDS,
+      options = { questions: DEFAULT_QUESTIONS, mode: "multiply", lang: "en", think: DEFAULT_THINK_SECONDS, timer: true,
                   animate: true, stats: false }
       parser = OptionParser.new do |opts|
         opts.banner = "Usage: ruby times_table.rb [options]"
@@ -1007,6 +1007,7 @@ module TimesTable
                 "Countdown before an answer counts as not automatic (default #{DEFAULT_THINK_SECONDS} s)") do |value|
           options[:think] = positive!(value)
         end
+        opts.on("--no-timer", "No countdown, and slow answers count like fast ones") { options[:timer] = false }
         opts.on("-p", "--name NAME", "Player name: each child gets their own progress") do |value|
           name = value.strip
           raise OptionParser::InvalidArgument, "the name can't be empty" if name.empty?
@@ -1054,7 +1055,7 @@ module TimesTable
       ui.say(:hello, :bold, name: name ? " #{name}" : "")
       tables = options[:tables] || ask_tables(ui)
       Session.new(profile:, ui:, tables:, count: options[:questions], mode: options[:mode],
-                  challenge: options[:challenge], think: options[:think], clock:, rng:).run
+                  challenge: options[:challenge], think: options[:timer] ? options[:think] : nil, clock:, rng:).run
       save(store, ui)
     rescue Quit, Interrupt
       ui.line

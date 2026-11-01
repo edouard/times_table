@@ -30,6 +30,7 @@ ruby times_table.rb --lang es                        # en español
 | `--mode MODE` | `-m` | `multiply` | `multiply` (7 x 8 = ?), `missing` (? x 8 = 56), `divide` (56 ÷ 7 = ?) or `mixed` |
 | `--challenge [SECONDS]` | `-c` | 60 | Timed challenge: answer as many as you can |
 | `--think SECONDS` | | 8 | Length of the countdown before an answer counts as not automatic |
+| `--no-timer` | | | No countdown; slow answers count like fast ones |
 | `--name NAME` | `-p` | | Player name; each child gets their own progress |
 | `--stats` | `-s` | | Show progress and exit |
 | `--lang LANG` | `-l` | `en` | `en` or `es` |
@@ -38,7 +39,7 @@ ruby times_table.rb --lang es                        # en español
 
 ## How it works
 
-**Countdown.** In a terminal, a bar counts down next to each question. An answer after the countdown is still accepted, but it's marked as *not automatic yet*: the fact isn't promoted and comes back next session.
+**Countdown.** In a terminal, a bar counts down next to each question. An answer after the countdown is still accepted, but it's marked as *not automatic yet*: the fact isn't promoted and comes back next session. Use `--no-timer` to practice without any time pressure (the challenge clock still runs).
 
 **Animations.** Right answers sparkle, wrong answers shake, and streaks of 5, 10, 15… flash on screen. A perfect session ends with confetti. Animations and colors only appear in a real terminal; colors also turn off with `NO_COLOR`.
 

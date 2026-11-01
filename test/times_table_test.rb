@@ -105,6 +105,12 @@ class OptionsTest < Minitest::Test
     refute options[:animate]
   end
 
+  def test_no_timer
+    assert TimesTable::CLI.parse([])[:timer]
+    refute TimesTable::CLI.parse(%w[--no-timer])[:timer]
+    refute TimesTable::CLI.parse(%w[--no-timer --think 5])[:timer]
+  end
+
   def test_invalid_options
     [%w[-t 11], %w[-n 0], %w[-n x], %w[-m foo], %w[-c 0], %w[-l fr], %w[extra], %w[-p], ["-p", " "]].each do |args|
       assert_raises(OptionParser::ParseError, args.inspect) { TimesTable::CLI.parse(args) }
@@ -333,6 +339,13 @@ class SessionTest < Minitest::Test
     assert(saved_profile["facts"].values.all? { _1["box"].zero? && _1["slow"] == 1 })
   end
 
+  def test_no_timer_counts_slow_answers_like_fast_ones
+    output, = run_cli("-t", "3", "-n", "2", "--no-timer", seconds_per_answer: 60)
+    refute_includes output, "not automatic"
+    refute_includes output, "before the timer runs out"
+    assert(saved_profile["facts"].values.all? { _1["box"] == 1 && _1["slow"].zero? })
+  end
+
   def test_invalid_input_is_asked_again
     replies = ["abc", "", "-1"]
     output, = run_cli("-t", "2", "-n", "1") { |answer, _| replies.shift || answer }
@@ -435,6 +448,21 @@ class TerminalTest < Minitest::Test
     right, asked = plain[%r{Score: (\d+ / \d+) right on the first try}, 1].split(" / ").map(&:to_i)
     assert_equal asked - 1, right, "only the first answer was wrong"
     assert_includes transcript, "\e[?25h", "cursor shown again"
+  end
+
+  def test_no_timer_hides_the_countdown
+    require "pty"
+    script = File.expand_path("../times_table.rb", __dir__)
+    transcript = +""
+    PTY.spawn({ "TIMES_TABLE_FILE" => @file }, RbConfig.ruby, script, "-t", "4", "-n", "1", "--no-timer") do |reader, writer, pid|
+      screen = read_until(reader, transcript, /\d+ x \d+ = \?/)
+      a, b = screen.scan(/(\d+) x (\d+) = \?/).last.map(&:to_i)
+      writer.write("#{a * b}\r")
+      read_until(reader, transcript, /average/i)
+      Process.wait(pid)
+    end
+    refute_match(/[█░]|take your time/, transcript)
+    assert_includes transcript, "Score"
   end
 
   private
