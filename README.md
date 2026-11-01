@@ -38,3 +38,7 @@ Colors are turned off when output isn't a terminal or when `NO_COLOR` is set.
 ## Requirements
 
 Ruby 3.0 or later.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
